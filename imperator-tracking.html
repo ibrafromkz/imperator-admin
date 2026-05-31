@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IMPERATOR PS CLUB — Admin</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{
+  --bg:#0a0a0f;--surface:#111118;--card:#16161f;--border:#2a2a3a;
+  --accent:#4f9fff;--accent2:#ff4f4f;--gold:#ffd166;--text:#e8e8f0;--muted:#666680;
+  --free:#4fff8a;--occupied:#ff4f4f;--reserved:#ffd166;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;min-height:100vh;overflow-x:hidden;}
+header{background:var(--surface);border-bottom:2px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:1.6rem;letter-spacing:3px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.clock{font-family:'JetBrains Mono',monospace;font-size:1.1rem;color:var(--accent);letter-spacing:2px;}
+.date-text{font-size:0.75rem;color:var(--muted);text-align:right;letter-spacing:1px;}
+.sync-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-left:6px;vertical-align:middle;}
+.sync-ok{background:var(--free);box-shadow:0 0 5px var(--free);}
+.sync-err{background:var(--occupied);box-shadow:0 0 5px var(--occupied);}
+.sync-loading{background:var(--gold);animation:pulse 1s infinite;}
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border);}
+.stat-item{background:var(--surface);padding:10px 16px;text-align:center;}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;line-height:1;}
+.stat-num.free{color:var(--free);}.stat-num.occupied{color:var(--occupied);}.stat-num.reserved{color:var(--reserved);}.stat-num.revenue{color:var(--gold);}
+.stat-label{font-size:0.65rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+main{padding:16px;max-width:1100px;margin:0 auto;}
+.section-title{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:3px;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.rooms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:24px;}
+.room-card{background:var(--card);border:1.5px solid var(--border);border-radius:10px;overflow:hidden;transition:all 0.2s;}
+.room-card:hover{border-color:var(--accent);transform:translateY(-1px);}
+.room-card.occupied{border-color:var(--occupied);}
+.room-card.reserved{border-color:var(--reserved);}
+.room-card.free{border-color:var(--free);}
+.room-header{padding:10px 14px 8px;display:flex;align-items:flex-start;justify-content:space-between;border-bottom:1px solid var(--border);}
+.room-name{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:2px;line-height:1.1;}
+.room-badge{padding:3px 10px;border-radius:20px;font-size:0.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap;}
+.badge-free{background:rgba(79,255,138,0.15);color:var(--free);border:1px solid rgba(79,255,138,0.3);}
+.badge-occupied{background:rgba(255,79,79,0.15);color:var(--occupied);border:1px solid rgba(255,79,79,0.3);}
+.badge-reserved{background:rgba(255,209,102,0.15);color:var(--reserved);border:1px solid rgba(255,209,102,0.3);}
+.room-body{padding:10px 14px;}
+.session-info{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
+.info-block label{display:block;font-size:0.58rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:2px;}
+.info-block span{font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--text);}
+.timer-display{font-family:'JetBrains Mono',monospace;font-size:1.5rem;color:var(--accent);text-align:center;padding:8px;background:rgba(79,159,255,0.08);border-radius:6px;margin-bottom:8px;letter-spacing:3px;}
+.timer-display.warning{color:var(--occupied);background:rgba(255,79,79,0.08);animation:timerPulse 1s infinite;}
+.timer-display.done{color:var(--gold);background:rgba(255,209,102,0.12);animation:timerPulse 0.5s infinite;}
+@keyframes timerPulse{0%,100%{opacity:1;}50%{opacity:0.5;}}
+.package-bar{height:6px;background:var(--border);border-radius:3px;margin-bottom:8px;overflow:hidden;}
+.package-bar-fill{height:100%;border-radius:3px;transition:width 1s linear;}
+.amount-display{font-family:'JetBrains Mono',monospace;font-size:1rem;color:var(--gold);}
+.comment-text{font-size:0.75rem;color:var(--muted);margin-top:6px;padding:5px 8px;background:rgba(255,255,255,0.03);border-radius:4px;border-left:2px solid var(--border);font-style:italic;}
+.menu-orders{margin-top:6px;font-size:0.75rem;}
+.menu-order-item{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(42,42,58,0.4);}
+.menu-order-item:last-child{border-bottom:none;}
+.room-actions{display:flex;gap:5px;padding:0 14px 10px;flex-wrap:wrap;}
+.btn{flex:1;min-width:60px;padding:7px 4px;border:none;border-radius:6px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.75rem;letter-spacing:0.8px;cursor:pointer;transition:all 0.15s;text-transform:uppercase;}
+.btn-start{background:rgba(79,255,138,0.2);color:var(--free);border:1px solid rgba(79,255,138,0.4);}
+.btn-start:hover{background:rgba(79,255,138,0.35);}
+.btn-stop{background:rgba(255,79,79,0.2);color:var(--occupied);border:1px solid rgba(255,79,79,0.4);}
+.btn-stop:hover{background:rgba(255,79,79,0.35);}
+.btn-reserve{background:rgba(255,209,102,0.15);color:var(--reserved);border:1px solid rgba(255,209,102,0.3);}
+.btn-reserve:hover{background:rgba(255,209,102,0.25);}
+.btn-edit{background:rgba(79,159,255,0.15);color:var(--accent);border:1px solid rgba(79,159,255,0.3);}
+.btn-edit:hover{background:rgba(79,159,255,0.25);}
+.btn-menu{background:rgba(255,166,77,0.15);color:#ffa64d;border:1px solid rgba(255,166,77,0.3);}
+.btn-menu:hover{background:rgba(255,166,77,0.25);}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;}
+.dot-free{background:var(--free);box-shadow:0 0 5px var(--free);}
+.dot-occupied{background:var(--occupied);box-shadow:0 0 5px var(--occupied);animation:pulse 1.5s infinite;}
+.dot-reserved{background:var(--reserved);box-shadow:0 0 5px var(--reserved);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:200;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;}
+.modal-overlay.active{display:flex;}
+.modal{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:20px;width:100%;max-width:400px;animation:slideUp 0.2s ease;margin:auto;}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.modal h2{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:2px;margin-bottom:14px;color:var(--accent);}
+.form-group{margin-bottom:12px;}
+.form-group label{display:block;font-size:0.68rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px;}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:6px;color:var(--text);padding:9px 11px;font-family:'Rajdhani',sans-serif;font-size:0.95rem;transition:border-color 0.15s;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--accent);}
+.form-group input[type="time"]{width:100%;min-height:42px;-webkit-appearance:none;appearance:none;}
+.form-group select option{background:var(--surface);}
+.form-group textarea{resize:none;height:60px;}
+.price-hint{font-size:0.68rem;color:var(--gold);margin-top:3px;font-family:'JetBrains Mono',monospace;}
+.modal-actions{display:flex;gap:8px;margin-top:14px;}
+.btn-confirm{background:var(--accent);color:#000;font-weight:800;font-size:0.88rem;padding:10px;border:none;border-radius:6px;flex:1;cursor:pointer;font-family:'Rajdhani',sans-serif;letter-spacing:1px;text-transform:uppercase;transition:opacity 0.15s;}
+.btn-confirm:hover{opacity:0.85;}
+.btn-cancel{background:transparent;color:var(--muted);border:1.5px solid var(--border);border-radius:6px;padding:10px;flex:0.5;cursor:pointer;font-family:'Rajdhani',sans-serif;font-size:0.88rem;letter-spacing:1px;text-transform:uppercase;transition:border-color 0.15s;}
+.btn-cancel:hover{border-color:var(--text);color:var(--text);}
+.menu-category{margin-bottom:10px;}
+.menu-cat-title{font-size:0.7rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+.menu-item-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(42,42,58,0.3);}
+.menu-item-row:last-child{border-bottom:none;}
+.menu-item-name{flex:1;font-size:0.85rem;}
+.menu-item-price{font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--gold);min-width:70px;text-align:right;}
+.qty-controls{display:flex;align-items:center;gap:4px;}
+.qty-btn{width:24px;height:24px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all 0.1s;}
+.qty-btn:hover{border-color:var(--accent);color:var(--accent);}
+.qty-num{font-family:'JetBrains Mono',monospace;font-size:0.85rem;min-width:18px;text-align:center;}
+.menu-subtotal{background:rgba(255,209,102,0.07);border:1px solid rgba(255,209,102,0.2);border-radius:6px;padding:10px 12px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;}
+.menu-subtotal-label{font-size:0.7rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.menu-subtotal-val{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--gold);}
+/* LOG */
+.log-filter-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
+.log-filter-bar input,.log-filter-bar select{background:var(--surface);border:1.5px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-family:'Rajdhani',sans-serif;font-size:0.85rem;}
+.log-filter-bar input:focus,.log-filter-bar select:focus{outline:none;border-color:var(--accent);}
+.log-wrapper{background:var(--card);border:1.5px solid var(--border);border-radius:10px;overflow:hidden;overflow-x:auto;}
+.log-table{width:100%;border-collapse:collapse;font-size:0.8rem;}
+.log-table th{background:var(--surface);padding:7px 9px;text-align:left;font-size:0.6rem;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);}
+.log-table td{padding:8px 9px;border-bottom:1px solid rgba(42,42,58,0.5);font-family:'JetBrains Mono',monospace;font-size:0.76rem;}
+.log-table tr:hover td{background:rgba(255,255,255,0.02);}
+.td-room{color:var(--accent);font-weight:700;}
+.td-amount{color:var(--gold);}
+.td-comment{color:var(--muted);font-style:italic;font-family:'Rajdhani',sans-serif;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.log-empty{text-align:center;padding:28px;color:var(--muted);font-size:0.88rem;letter-spacing:1px;}
+.daily-total{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:12px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.daily-total .label{font-size:0.68rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
+.daily-total .value{font-family:'Bebas Neue',sans-serif;font-size:1.9rem;color:var(--gold);letter-spacing:2px;}
+.daily-total .sessions{font-size:0.73rem;color:var(--muted);margin-top:2px;}
+.btn-sm{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:6px;font-family:'Rajdhani',sans-serif;font-size:0.73rem;cursor:pointer;letter-spacing:1px;transition:all 0.15s;}
+.btn-sm:hover{border-color:var(--accent2);color:var(--accent2);}
+.btn-sm.export:hover{border-color:var(--free);color:var(--free);}
+.alarm-banner{position:fixed;top:0;left:0;right:0;z-index:500;background:linear-gradient(135deg,#ff4f00,#ff0066);color:#fff;padding:14px 20px;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:3px;display:none;animation:alarmFlash 0.5s infinite alternate;cursor:pointer;}
+.alarm-banner.active{display:block;}
+@keyframes alarmFlash{from{background:linear-gradient(135deg,#ff4f00,#ff0066);}to{background:linear-gradient(135deg,#ff0066,#ff4f00);}}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+@media(max-width:480px){
+  .stats-bar{grid-template-columns:repeat(2,1fr);}
+  .rooms-grid{grid-template-columns:1fr;}
+  .log-table th:nth-child(5),.log-table td:nth-child(5){display:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="alarm-banner" id="alarmBanner" onclick="dismissAlarm()">
+  ⏰ УАҚЫТ БІТТІ! — <span id="alarmRoomName"></span> — БАС НЕМЕСЕ СОЗУ
+</div>
+
+<header>
+  <div>
+    <div class="logo">⚡ IMPERATOR</div>
+    <div style="font-size:0.58rem;color:var(--muted);letter-spacing:2px;margin-top:2px">
+      PS CLUB ADMIN
+      <span class="sync-dot sync-loading" id="syncDot" title="Синхрондалуда..."></span>
+    </div>
+  </div>
+  <div style="text-align:right">
+    <div class="clock" id="clock">00:00:00</div>
+    <div class="date-text" id="dateText">—</div>
+  </div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat-item"><div class="stat-num free" id="statFree">0</div><div class="stat-label">Бос</div></div>
+  <div class="stat-item"><div class="stat-num occupied" id="statOccupied">0</div><div class="stat-label">Толы</div></div>
+  <div class="stat-item"><div class="stat-num reserved" id="statReserved">0</div><div class="stat-label">Брондалған</div></div>
+  <div class="stat-item"><div class="stat-num revenue" id="statRevenue">0₸</div><div class="stat-label">Бүгін</div></div>
+</div>
+
+<main>
+  <div class="section-title">КАБИНКАЛАР</div>
+  <div class="rooms-grid" id="roomsGrid"></div>
+
+  <div>
+    <div class="section-title">СЕССИЯЛАР ТІЗІМІ</div>
+    <div class="daily-total">
+      <div>
+        <div class="label">Күндік табыс</div>
+        <div class="value" id="dailyTotal">0 ₸</div>
+        <div class="sessions" id="dailySessions">0 сессия</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn-sm export" onclick="exportCSV()">📥 CSV</button>
+        <button class="btn-sm" onclick="clearLog()">Тазалау</button>
+      </div>
+    </div>
+
+    <!-- FILTER BAR -->
+    <div class="log-filter-bar">
+      <input type="date" id="filterFrom" onchange="applyFilter()">
+      <span style="color:var(--muted);font-size:0.8rem">—</span>
+      <input type="date" id="filterTo" onchange="applyFilter()">
+      <select id="filterRoom" onchange="applyFilter()">
+        <option value="">Барлық залдар</option>
+      </select>
+      <button class="btn-sm" onclick="resetFilter()">Тазарту</button>
+    </div>
+
+    <div class="log-wrapper">
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th>Күн</th><th>Зал</th><th>Кірді</th><th>Шықты</th><th>Уақыт</th>
+            <th>Адам</th><th>Тариф</th><th>Меню</th><th>Барлығы</th><th>Комментарий</th>
+          </tr>
+        </thead>
+        <tbody id="logBody"><tr><td colspan="10" class="log-empty">Жүктелуде...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- START MODAL -->
+<div class="modal-overlay" id="startModal">
+  <div class="modal">
+    <h2 id="startModalTitle">Сессия бастау</h2>
+    <div class="form-group">
+      <label>Адам саны</label>
+      <input type="number" id="guestCount" min="1" max="20" value="2">
+    </div>
+    <div class="form-group">
+      <label>Тариф</label>
+      <select id="rateSelect" onchange="updatePriceHint()">
+        <option value="open_2500">Ашық — 2500₸/сағ</option>
+        <option value="pkg_2_1">Пакет 2+1 — 6000₸ (2 сағ + 1 тегін)</option>
+        <option value="pkg_3_1">Пакет 3+1 — 8000₸ (3 сағ + 1 тегін)</option>
+      </select>
+      <div class="price-hint" id="priceHint"></div>
+    </div>
+    <div class="form-group">
+      <label>Комментарий</label>
+      <textarea id="sessionComment" placeholder="Ескертпе..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('startModal')">Болдырмау</button>
+      <button class="btn-confirm" onclick="confirmStart()">▶ БАСТАУ</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESERVE MODAL -->
+<div class="modal-overlay" id="reserveModal">
+  <div class="modal">
+    <h2 id="reserveModalTitle">Брондау</h2>
+    <div class="form-group"><label>Аты</label><input type="text" id="reserveName" placeholder="Клиент аты"></div>
+    <div class="form-group"><label>Телефон</label><input type="tel" id="reservePhone" placeholder="+7 ..."></div>
+    <div class="form-group"><label>Уақыты</label><input type="time" id="reserveTime"></div>
+    <div class="form-group"><label>Ескертпе</label><textarea id="reserveComment" placeholder="..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('reserveModal')">Болдырмау</button>
+      <button class="btn-confirm" onclick="confirmReserve()" style="background:var(--reserved);color:#000">📋 БРОНДАУ</button>
+    </div>
+  </div>
+</div>
+
+<!-- STOP MODAL -->
+<div class="modal-overlay" id="stopModal">
+  <div class="modal">
+    <h2>Сессияны аяқтау</h2>
+    <div style="background:rgba(255,209,102,0.08);border:1px solid rgba(255,209,102,0.2);border-radius:8px;padding:12px;margin-bottom:14px;text-align:center">
+      <div style="font-size:0.62rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">ЖИЫНТЫҚ СОМА</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:2.2rem;color:var(--gold);" id="stopTotalAmount">0 ₸</div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-top:4px" id="stopBreakdown"></div>
+    </div>
+    <div class="form-group"><label>Қосымша ескертпе</label><textarea id="stopComment" placeholder="..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('stopModal')">Болдырмау</button>
+      <button class="btn-confirm" onclick="confirmStop()" style="background:var(--occupied);color:#fff">⏹ АЯҚТАУ</button>
+    </div>
+  </div>
+</div>
+
+<!-- MENU MODAL -->
+<div class="modal-overlay" id="menuModal">
+  <div class="modal" style="max-width:440px">
+    <h2 id="menuModalTitle">🍔 Меню тапсырысы</h2>
+    <div id="menuContent"></div>
+    <div class="menu-subtotal">
+      <div><div class="menu-subtotal-label">Меню сомасы</div></div>
+      <div class="menu-subtotal-val" id="menuSubtotal">0 ₸</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('menuModal')">Жабу</button>
+      <button class="btn-confirm" onclick="confirmMenuOrder()" style="background:#ffa64d;color:#000">✅ ҚОСУ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== SUPABASE CONFIG =====
+const SB_URL = 'https://scavlgybyiypqqmdrtcj.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjYXZsZ3lieWl5cHFxbWRydGNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyMzQyNDUsImV4cCI6MjA5NTgxMDI0NX0.VhyMBulW5lhRt7V6ceNDS296y5tcZy0wtnqpkF2C0dI';
+const SB_HEADERS = {
+  'Content-Type': 'application/json',
+  'apikey': SB_KEY,
+  'Authorization': 'Bearer ' + SB_KEY,
+  'Prefer': 'return=representation'
+};
+
+function showError(msg){
+  let el=document.getElementById("debugBar");
+  if(!el){el=document.createElement("div");el.id="debugBar";el.style.cssText="position:fixed;bottom:0;left:0;right:0;background:#1a0000;color:#ff9999;font-size:0.72rem;padding:10px 14px;z-index:9999;font-family:monospace;border-top:2px solid #ff4f4f;word-break:break-all;";document.body.appendChild(el);}
+  el.textContent="ERROR: "+msg;
+}
+async function sbGet(table,params=""){
+  const r=await fetch(`${SB_URL}/rest/v1/${table}?${params}`,{headers:SB_HEADERS});
+  if(!r.ok){const t=await r.text();showError("GET "+table+": "+r.status+" "+t);throw new Error(t);}
+  return r.json();
+}
+async function sbUpsert(table,body){
+  const r=await fetch(`${SB_URL}/rest/v1/${table}`,{method:"POST",headers:{...SB_HEADERS,"Prefer":"resolution=merge-duplicates,return=representation"},body:JSON.stringify(body)});
+  if(!r.ok){const t=await r.text();showError("UPSERT "+table+": "+r.status+" "+t);throw new Error(t);}
+  return r.json();
+}
+async function sbInsert(table,body){
+  const r=await fetch(`${SB_URL}/rest/v1/${table}`,{method:"POST",headers:SB_HEADERS,body:JSON.stringify(body)});
+  if(!r.ok){const t=await r.text();showError("INSERT "+table+": "+r.status+" "+t);throw new Error(t);}
+  return r.json();
+}
+async function sbDelete(table,params){
+  const r=await fetch(`${SB_URL}/rest/v1/${table}?${params}`,{method:"DELETE",headers:SB_HEADERS});
+  if(!r.ok){const t=await r.text();showError("DELETE "+table+": "+r.status+" "+t);throw new Error(t);}
+}
+
+// ===== ROOMS =====
+const ROOMS = [
+  {id:'san-siro',    name:'SAN SIRO',         emoji:'🔴'},
+  {id:'olimpico',    name:'OLIMPICO',          emoji:'⚪'},
+  {id:'stamford',    name:'STAMFORD BRIDGE',   emoji:'🔵'},
+  {id:'anfield',     name:'ANFIELD',           emoji:'🟥'},
+  {id:'camp-nou',    name:'CAMP NOU',          emoji:'🔵'},
+  {id:'allianz',     name:'ALLIANZ ARENA',     emoji:'⚫'},
+  {id:'bernabeu',    name:'SANTIAGO BERNABEU', emoji:'🤍'},
+  {id:'parc',        name:'PARC DES PRINCES',  emoji:'🔵', note:'Топчан'},
+];
+
+// ===== MENU =====
+const MENU = [
+  {cat:'🥤 Сусын', items:[
+    {id:'drink_05',name:'Сусын 0.5л',price:800},
+    {id:'drink_1', name:'Сусын 1л',  price:1100},
+  ]},
+  {cat:'🍫 Снеки', items:[
+    {id:'choc', name:'Шоколад',price:800},
+    {id:'gum',  name:'Сағыз',  price:400},
+    {id:'chips',name:'Чипсы',  price:1000},
+  ]},
+  {cat:'🍔 Фастфуд', items:[
+    {id:'hotdog',      name:'Хот дог',                  price:1600},
+    {id:'hotdog_c',    name:'Хот дог комбо',            price:3200},
+    {id:'sand_kol',    name:'Сендвич с колбасой',       price:1800},
+    {id:'sand_kol_c',  name:'Сендвич с колбасой комбо', price:3400},
+    {id:'sand_ind',    name:'Сендвич с индейкой',       price:2500},
+    {id:'sand_ind_c',  name:'Сендвич с индейкой комбо', price:4000},
+    {id:'nuggets',     name:'Наггетсы',                 price:1500},
+    {id:'fries',       name:'Фри',                      price:1400},
+    {id:'pizza_marg',  name:'Пицца маргарита',          price:2800},
+    {id:'pizza_pep',   name:'Пицца пепперони',          price:3000},
+    {id:'pizza_ind',   name:'Пицца с индейкой',         price:3500},
+  ]},
+  {cat:'🍵 Шай', items:[
+    {id:'tea_black',name:'Қара/Жасыл шай',    price:1200},
+    {id:'tea_kaz',  name:'Тары/Ташкент/Карак',price:1600},
+  ]},
+  {cat:'💨 Дымный коктейль', items:[
+    {id:'hookah',     name:'Дымный коктейль',price:6000},
+    {id:'hookah_bowl',name:'Замена чаши',    price:3000},
+  ]},
+];
+
+const TARIFFS = {
+  open_2500:{label:'Ашық 2500₸/сағ',    ratePerHour:2500, packageMinutes:null},
+  pkg_2_1:  {label:'Пакет 2+1 (6000₸)', ratePerHour:null, packageMinutes:180, fixedPrice:6000},
+  pkg_3_1:  {label:'Пакет 3+1 (8000₸)', ratePerHour:null, packageMinutes:240, fixedPrice:8000},
+};
+
+// ===== STATE =====
+let sessions = {};   // roomId -> session
+let log = [];        // full history (from Supabase)
+let filteredLog = [];
+let activeRoomId = null;
+let menuQtys = {};
+let alarmRooms = {};
+let timerInterval = null;
+let syncInterval = null;
+
+// ===== SYNC STATUS =====
+function setSyncStatus(status){
+  const dot = document.getElementById('syncDot');
+  dot.className = 'sync-dot';
+  if(status==='ok')      { dot.classList.add('sync-ok');      dot.title='Синхрондалды ✓'; }
+  else if(status==='err'){ dot.classList.add('sync-err');     dot.title='Қосылу қатесі!'; }
+  else                   { dot.classList.add('sync-loading'); dot.title='Синхрондалуда...'; }
+}
+
+// ===== SUPABASE: SESSIONS =====
+async function loadSessionsFromDB(){
+  try {
+    const rows = await sbGet('sessions','select=*');
+    sessions = {};
+    rows.forEach(r=>{ if(r.data) sessions[r.data.roomId] = r.data; });
+    setSyncStatus('ok');
+  } catch(e){
+    console.error('Sessions load error:',e);
+    setSyncStatus('err');
+    // fallback to localStorage
+    try { sessions = JSON.parse(localStorage.getItem('imp_sessions')||'{}'); } catch(e2){}
+  }
+}
+
+async function saveSessionToDB(roomId){
+  try {
+    const s = sessions[roomId];
+    if(s){
+      await sbUpsert('sessions',[{id: roomId, data:{...s, roomId}, updated_at: new Date().toISOString()}]);
+    } else {
+      await sbDelete('sessions', `id=eq.${roomId}`);
+    }
+    // also mirror to localStorage as backup
+    localStorage.setItem('imp_sessions', JSON.stringify(sessions));
+    setSyncStatus('ok');
+  } catch(e){
+    console.error('Session save error:',e);
+    setSyncStatus('err');
+    localStorage.setItem('imp_sessions', JSON.stringify(sessions));
+  }
+}
+
+// ===== SUPABASE: LOGS =====
+async function loadLogsFromDB(filterFrom, filterTo, filterRoom){
+  try {
+    let params = 'select=*&order=created_at.desc&limit=500';
+    if(filterFrom) params += `&created_at=gte.${filterFrom}T00:00:00`;
+    if(filterTo)   params += `&created_at=lte.${filterTo}T23:59:59`;
+    const rows = await sbGet('logs', params);
+    log = rows.map(r=>r.data).filter(Boolean);
+    if(filterRoom) log = log.filter(e=>e.roomId===filterRoom);
+    setSyncStatus('ok');
+  } catch(e){
+    console.error('Logs load error:',e);
+    setSyncStatus('err');
+    try { log = JSON.parse(localStorage.getItem('imp_log')||'[]'); } catch(e2){}
+  }
+  filteredLog = log;
+  renderLog();
+  updateStats();
+}
+
+async function saveLogToDB(entry){
+  try {
+    await sbInsert('logs',[{data: entry, created_at: new Date(entry.endTime).toISOString()}]);
+    localStorage.setItem('imp_log', JSON.stringify(log));
+    setSyncStatus('ok');
+  } catch(e){
+    console.error('Log save error:',e);
+    setSyncStatus('err');
+    localStorage.setItem('imp_log', JSON.stringify(log));
+  }
+}
+
+// ===== AUTO POLL (every 5 sec — multi-user sync) =====
+function startSyncPolling(){
+  if(syncInterval) clearInterval(syncInterval);
+  syncInterval = setInterval(async()=>{
+    const prevSessions = JSON.stringify(sessions);
+    await loadSessionsFromDB();
+    if(JSON.stringify(sessions) !== prevSessions){
+      renderRooms(); updateStats();
+    }
+  }, 5000);
+}
+
+// ===== CLOCK =====
+function updateClock(){
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('kk-KZ',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const days=['Жексенбі','Дүйсенбі','Сейсенбі','Сәрсенбі','Бейсенбі','Жұма','Сенбі'];
+  const months=['қаңтар','ақпан','наурыз','сәуір','мамыр','маусым','шілде','тамыз','қыркүйек','қазан','қараша','желтоқсан'];
+  document.getElementById('dateText').textContent = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]}`;
+}
+
+// ===== HELPERS =====
+function getElapsed(startTime){
+  const diff=Math.max(0,Date.now()-startTime);
+  const totalSec=Math.floor(diff/1000);
+  const minutes=Math.floor(totalSec/60);
+  const h=Math.floor(minutes/60),m=minutes%60,s=totalSec%60;
+  return{display:`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`,minutes,totalSec};
+}
+function formatTime(ts){if(!ts)return'—';return new Date(ts).toLocaleTimeString('kk-KZ',{hour:'2-digit',minute:'2-digit'});}
+function formatDate(ts){if(!ts)return'—';return new Date(ts).toLocaleDateString('kk-KZ',{day:'2-digit',month:'2-digit',year:'2-digit'});}
+
+function calcSessionCost(s){
+  const t=TARIFFS[s.tariff]; if(!t)return 0;
+  if(t.packageMinutes!==null)return t.fixedPrice;
+  return Math.ceil((Date.now()-s.startTime)/3600000*t.ratePerHour);
+}
+function calcMenuTotal(orders){
+  if(!orders)return 0;
+  return orders.reduce((sum,o)=>{const i=findMenuItem(o.id);return sum+(i?i.price*o.qty:0);},0);
+}
+function findMenuItem(id){for(const c of MENU){const i=c.items.find(x=>x.id===id);if(i)return i;}return null;}
+function getPackageRemaining(s){
+  const t=TARIFFS[s.tariff];if(!t||t.packageMinutes===null)return null;
+  return t.packageMinutes-(Date.now()-s.startTime)/60000;
+}
+
+// ===== ALARM =====
+let audioCtx=null;
+function playAlarm(){
+  try{
+    if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    [0,0.25,0.5,0.75,1.0,1.25].forEach((t,i)=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.connect(g);g.connect(audioCtx.destination);
+      o.frequency.value=i%2===0?880:660;o.type='sine';
+      g.gain.setValueAtTime(0.4,audioCtx.currentTime+t);
+      g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+t+0.2);
+      o.start(audioCtx.currentTime+t);o.stop(audioCtx.currentTime+t+0.25);
+    });
+  }catch(e){}
+}
+function checkAlarms(){
+  ROOMS.forEach(room=>{
+    const s=sessions[room.id];
+    if(!s||s.type!=='active')return;
+    const rem=getPackageRemaining(s);
+    if(rem!==null&&rem<=0&&!alarmRooms[room.id]){
+      alarmRooms[room.id]=true;
+      document.getElementById('alarmRoomName').textContent=room.name;
+      document.getElementById('alarmBanner').classList.add('active');
+      playAlarm();setTimeout(()=>playAlarm(),2000);setTimeout(()=>playAlarm(),4000);
+    }
+  });
+}
+function dismissAlarm(){document.getElementById('alarmBanner').classList.remove('active');}
+
+// ===== STATS =====
+function updateStats(){
+  let free=0,occupied=0,reserved=0;
+  ROOMS.forEach(r=>{const s=sessions[r.id];if(!s)free++;else if(s.type==='reserved')reserved++;else occupied++;});
+  const today=new Date().toDateString();
+  const todayRev=log.filter(e=>new Date(e.endTime).toDateString()===today).reduce((s,e)=>s+(e.totalAmount||0),0);
+  const todaySess=log.filter(e=>new Date(e.endTime).toDateString()===today).length;
+  document.getElementById('statFree').textContent=free;
+  document.getElementById('statOccupied').textContent=occupied;
+  document.getElementById('statReserved').textContent=reserved;
+  document.getElementById('statRevenue').textContent=todayRev.toLocaleString()+'₸';
+  document.getElementById('dailyTotal').textContent=todayRev.toLocaleString()+' ₸';
+  document.getElementById('dailySessions').textContent=todaySess+' сессия';
+}
+
+// ===== RENDER ROOMS =====
+function renderRooms(){
+  const grid=document.getElementById('roomsGrid');
+  grid.innerHTML='';
+  ROOMS.forEach(room=>{
+    const s=sessions[room.id];
+    const card=document.createElement('div');
+    card.className=`room-card ${s?(s.type==='reserved'?'reserved':'occupied'):'free'}`;
+    card.innerHTML=buildRoomHTML(room,s);
+    grid.appendChild(card);
+  });
+}
+
+function buildRoomHTML(room,s){
+  const sc=s?(s.type==='reserved'?'badge-reserved':'badge-occupied'):'badge-free';
+  const st=s?(s.type==='reserved'?'БРОНДАЛҒАН':'ТОЛЫ'):'БОС';
+  const dc=s?(s.type==='reserved'?'dot-reserved':'dot-occupied'):'dot-free';
+  let bodyHTML='',actionsHTML='';
+
+  if(!s){
+    bodyHTML=`<div style="text-align:center;padding:18px 0;color:var(--muted);font-size:0.85rem;letter-spacing:1px">${room.note?'🛋 '+room.note:'— бос —'}</div>`;
+    actionsHTML=`<button class="btn btn-start" onclick="openStartModal('${room.id}')">▶ Бастау</button>
+                 <button class="btn btn-reserve" onclick="openReserveModal('${room.id}')">📋 Брон</button>`;
+  } else if(s.type==='reserved'){
+    bodyHTML=`<div class="session-info">
+      <div class="info-block"><label>Аты</label><span>${s.name||'—'}</span></div>
+      <div class="info-block"><label>Телефон</label><span>${s.phone||'—'}</span></div>
+      <div class="info-block"><label>Уақыты</label><span>${s.reserveTime||'—'}</span></div>
+    </div>${s.comment?`<div class="comment-text">${s.comment}</div>`:''}`;
+    actionsHTML=`<button class="btn btn-start" onclick="convertReserve('${room.id}')">▶ Бастау</button>
+                 <button class="btn btn-stop" onclick="cancelReserve('${room.id}')">✕ Болдырмау</button>`;
+  } else {
+    const tariff=TARIFFS[s.tariff]||TARIFFS['open_2500'];
+    const elapsed=getElapsed(s.startTime);
+    const sessionCost=calcSessionCost(s);
+    const menuTotal=calcMenuTotal(s.orders);
+    const grandTotal=sessionCost+menuTotal;
+    const remaining=getPackageRemaining(s);
+
+    let timerClass='timer-display',timerLabel='',progressBar='';
+    if(remaining!==null){
+      if(remaining<=0){timerClass+=' done';timerLabel='⏰ УАҚЫТ БІТТІ';}
+      else if(remaining<=10){timerClass+=' warning';timerLabel=`⚠ ${Math.ceil(remaining)} мин қалды`;}
+      else{timerLabel=`${Math.floor(remaining/60)}:${String(Math.ceil(remaining%60)).padStart(2,'0')} қалды`;}
+      const pct=Math.max(0,Math.min(100,(1-(remaining/tariff.packageMinutes))*100));
+      const color=remaining<=0?'var(--occupied)':remaining<=10?'var(--reserved)':'var(--free)';
+      progressBar=`<div class="package-bar"><div class="package-bar-fill" style="width:${pct}%;background:${color}"></div></div>`;
+    }
+
+    let ordersHTML='';
+    if(s.orders&&s.orders.length>0){
+      ordersHTML=`<div class="menu-orders">${s.orders.map(o=>{
+        const item=findMenuItem(o.id);
+        return item?`<div class="menu-order-item"><span>${item.name} ×${o.qty}</span><span style="color:var(--gold);font-family:'JetBrains Mono',monospace">${(item.price*o.qty).toLocaleString()}₸</span></div>`:'';
+      }).join('')}
+      <div class="menu-order-item" style="font-size:0.7rem;color:var(--muted)"><span>Меню жиыны</span><span style="font-family:'JetBrains Mono',monospace;color:#ffa64d">${menuTotal.toLocaleString()}₸</span></div>
+      </div>`;
+    }
+
+    bodyHTML=`
+      <div class="${timerClass}" id="timer-${room.id}">${elapsed.display}</div>
+      ${progressBar}
+      ${remaining!==null?`<div style="text-align:center;font-size:0.72rem;color:var(--muted);margin-bottom:6px;letter-spacing:1px">${timerLabel}</div>`:''}
+      <div class="session-info">
+        <div class="info-block"><label>Кіргені</label><span>${formatTime(s.startTime)}</span></div>
+        <div class="info-block"><label>Адам</label><span>${s.guests} адам</span></div>
+        <div class="info-block"><label>Тариф</label><span style="font-size:0.7rem">${tariff.label.split('(')[0].trim()}</span></div>
+        <div class="info-block"><label>Сессия</label><span class="amount-display" id="amt-${room.id}">${sessionCost.toLocaleString()}₸</span></div>
+      </div>
+      ${ordersHTML}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+        <span style="font-size:0.65rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase">Барлығы</span>
+        <span id="grand-${room.id}" style="font-family:'Bebas Neue',sans-serif;font-size:1.3rem;color:var(--gold)">${grandTotal.toLocaleString()}₸</span>
+      </div>
+      ${s.comment?`<div class="comment-text">${s.comment}</div>`:''}`;
+
+    actionsHTML=`<button class="btn btn-stop" onclick="openStopModal('${room.id}')">⏹ Аяқтау</button>
+                 <button class="btn btn-menu" onclick="openMenuModal('${room.id}')">🍔 Меню</button>
+                 <button class="btn btn-edit" onclick="openStartModal('${room.id}',true)">✏</button>`;
+  }
+
+  return `<div class="room-header">
+    <div><div class="room-name">${room.emoji} ${room.name}${room.note?`<span style="font-size:0.65rem;color:var(--muted);display:block;letter-spacing:1px">${room.note}</span>`:''}</div></div>
+    <span class="room-badge ${sc}"><span class="status-dot ${dc}"></span>${st}</span>
+  </div>
+  <div class="room-body">${bodyHTML}</div>
+  <div class="room-actions">${actionsHTML}</div>`;
+}
+
+// ===== TIMERS =====
+function startTimers(){
+  if(timerInterval)clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    ROOMS.forEach(room=>{
+      const s=sessions[room.id];
+      if(!s||s.type!=='active')return;
+      const elapsed=getElapsed(s.startTime);
+      const sessionCost=calcSessionCost(s);
+      const menuTotal=calcMenuTotal(s.orders);
+      const remaining=getPackageRemaining(s);
+      const el=document.getElementById(`timer-${room.id}`);
+      const amtEl=document.getElementById(`amt-${room.id}`);
+      const grandEl=document.getElementById(`grand-${room.id}`);
+      if(el){
+        el.textContent=elapsed.display;
+        if(remaining!==null){
+          if(remaining<=0)el.className='timer-display done';
+          else if(remaining<=10)el.className='timer-display warning';
+          else el.className='timer-display';
+        }
+      }
+      if(amtEl)amtEl.textContent=sessionCost.toLocaleString()+'₸';
+      if(grandEl)grandEl.textContent=(sessionCost+menuTotal).toLocaleString()+'₸';
+    });
+    checkAlarms();
+    updateStats();
+  },1000);
+}
+
+// ===== PRICE HINT =====
+function updatePriceHint(){
+  const v=document.getElementById('rateSelect').value;
+  const hints={open_2500:'Уақыт шексіз, минутпен есептеледі',pkg_2_1:'2 сағат + 1 сағат тегін = 3 сағат ⏰',pkg_3_1:'3 сағат + 1 сағат тегін = 4 сағат ⏰'};
+  document.getElementById('priceHint').textContent=hints[v]||'';
+}
+
+// ===== MODALS =====
+function openStartModal(roomId,isEdit=false){
+  activeRoomId=roomId;
+  const room=ROOMS.find(r=>r.id===roomId);
+  document.getElementById('startModalTitle').textContent=isEdit?`✏ ${room.name}`:`▶ ${room.name}`;
+  const s=sessions[roomId];
+  if(s&&s.type==='active'){
+    document.getElementById('guestCount').value=s.guests;
+    document.getElementById('rateSelect').value=s.tariff||'open_2500';
+    document.getElementById('sessionComment').value=s.comment||'';
+  } else {
+    document.getElementById('guestCount').value=2;
+    document.getElementById('rateSelect').value='open_2500';
+    document.getElementById('sessionComment').value='';
+  }
+  updatePriceHint();
+  document.getElementById('startModal').classList.add('active');
+}
+
+function openReserveModal(roomId){
+  activeRoomId=roomId;
+  const room=ROOMS.find(r=>r.id===roomId);
+  document.getElementById('reserveModalTitle').textContent=`📋 ${room.name}`;
+  ['reserveName','reservePhone','reserveComment'].forEach(id=>document.getElementById(id).value='');
+  const now=new Date();now.setHours(now.getHours()+1);
+  document.getElementById('reserveTime').value=now.toTimeString().slice(0,5);
+  document.getElementById('reserveModal').classList.add('active');
+}
+
+function openStopModal(roomId){
+  activeRoomId=roomId;
+  const s=sessions[roomId];
+  const tariff=TARIFFS[s.tariff]||TARIFFS['open_2500'];
+  const sessionCost=calcSessionCost(s);
+  const menuTotal=calcMenuTotal(s.orders);
+  const elapsed=getElapsed(s.startTime);
+  document.getElementById('stopTotalAmount').textContent=(sessionCost+menuTotal).toLocaleString()+' ₸';
+  document.getElementById('stopBreakdown').textContent=`Зал: ${sessionCost.toLocaleString()}₸  |  Меню: ${menuTotal.toLocaleString()}₸  |  ${elapsed.display}`;
+  document.getElementById('stopComment').value='';
+  document.getElementById('stopModal').classList.add('active');
+}
+
+function openMenuModal(roomId){
+  activeRoomId=roomId;
+  const room=ROOMS.find(r=>r.id===roomId);
+  document.getElementById('menuModalTitle').textContent=`🍔 ${room.name} — Меню`;
+  const s=sessions[roomId];
+  menuQtys={};
+  if(s&&s.orders)s.orders.forEach(o=>{menuQtys[o.id]=o.qty;});
+  renderMenuContent();
+  document.getElementById('menuModal').classList.add('active');
+}
+
+function renderMenuContent(){
+  let html='';
+  MENU.forEach(cat=>{
+    html+=`<div class="menu-category"><div class="menu-cat-title">${cat.cat}</div>`;
+    cat.items.forEach(item=>{
+      const qty=menuQtys[item.id]||0;
+      html+=`<div class="menu-item-row">
+        <div class="menu-item-name">${item.name}</div>
+        <div class="menu-item-price">${item.price.toLocaleString()}₸</div>
+        <div class="qty-controls">
+          <button class="qty-btn" onclick="changeQty('${item.id}',-1)">−</button>
+          <div class="qty-num" id="qty-${item.id}">${qty}</div>
+          <button class="qty-btn" onclick="changeQty('${item.id}',1)">+</button>
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  document.getElementById('menuContent').innerHTML=html;
+  updateMenuSubtotal();
+}
+
+function changeQty(id,delta){
+  menuQtys[id]=(menuQtys[id]||0)+delta;
+  if(menuQtys[id]<0)menuQtys[id]=0;
+  const el=document.getElementById(`qty-${id}`);
+  if(el)el.textContent=menuQtys[id];
+  updateMenuSubtotal();
+}
+
+function updateMenuSubtotal(){
+  let total=0;
+  Object.entries(menuQtys).forEach(([id,qty])=>{const i=findMenuItem(id);if(i&&qty>0)total+=i.price*qty;});
+  document.getElementById('menuSubtotal').textContent=total.toLocaleString()+' ₸';
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('active');}
+
+// ===== CONFIRM ACTIONS =====
+async function confirmStart(){
+  const guests=parseInt(document.getElementById('guestCount').value)||1;
+  const tariff=document.getElementById('rateSelect').value;
+  const comment=document.getElementById('sessionComment').value.trim();
+  const existing=sessions[activeRoomId];
+  const startTime=(existing&&existing.type==='active')?existing.startTime:Date.now();
+  const existingOrders=(existing&&existing.orders)||[];
+  sessions[activeRoomId]={type:'active',startTime,guests,tariff,comment,orders:existingOrders,roomId:activeRoomId};
+  delete alarmRooms[activeRoomId];
+  closeModal('startModal');
+  renderRooms(); updateStats(); startTimers();
+  await saveSessionToDB(activeRoomId);
+}
+
+async function confirmReserve(){
+  const name=document.getElementById('reserveName').value.trim()||'Белгісіз';
+  const phone=document.getElementById('reservePhone').value.trim();
+  const reserveTime=document.getElementById('reserveTime').value;
+  const comment=document.getElementById('reserveComment').value.trim();
+  sessions[activeRoomId]={type:'reserved',name,phone,reserveTime,comment,roomId:activeRoomId};
+  closeModal('reserveModal');
+  renderRooms(); updateStats();
+  await saveSessionToDB(activeRoomId);
+}
+
+function convertReserve(roomId){activeRoomId=roomId;openStartModal(roomId);}
+
+async function cancelReserve(roomId){
+  if(confirm('Бронды болдырмаймыз ба?')){
+    delete sessions[roomId];
+    renderRooms(); updateStats();
+    await saveSessionToDB(roomId);
+  }
+}
+
+async function confirmStop(){
+  const s=sessions[activeRoomId];
+  const endTime=Date.now();
+  const sessionCost=calcSessionCost(s);
+  const menuTotal=calcMenuTotal(s.orders);
+  const grandTotal=sessionCost+menuTotal;
+  const elapsed=getElapsed(s.startTime);
+  const extraComment=document.getElementById('stopComment').value.trim();
+  const comment=[s.comment,extraComment].filter(Boolean).join(' | ');
+  const tariff=TARIFFS[s.tariff]||TARIFFS['open_2500'];
+  const menuSummary=(s.orders&&s.orders.length>0)
+    ?s.orders.map(o=>{const it=findMenuItem(o.id);return it?`${it.name}×${o.qty}`:''}).filter(Boolean).join(', ')
+    :'—';
+
+  const entry={
+    roomId:activeRoomId,
+    roomName:ROOMS.find(r=>r.id===activeRoomId)?.name||activeRoomId,
+    startTime:s.startTime,endTime,
+    duration:elapsed.display,
+    guests:s.guests,
+    tariffLabel:tariff.label.split('(')[0].trim(),
+    menuSummary,sessionCost,menuTotal,totalAmount:grandTotal,comment
+  };
+
+  log.unshift(entry);
+  filteredLog = log;
+  delete sessions[activeRoomId];
+  delete alarmRooms[activeRoomId];
+  closeModal('stopModal');
+  renderRooms(); renderLog(); updateStats();
+  await saveSessionToDB(activeRoomId);
+  await saveLogToDB(entry);
+}
+
+async function confirmMenuOrder(){
+  const s=sessions[activeRoomId];
+  if(!s)return;
+  const orders=[];
+  Object.entries(menuQtys).forEach(([id,qty])=>{if(qty>0)orders.push({id,qty});});
+  sessions[activeRoomId]={...s,orders};
+  closeModal('menuModal');
+  renderRooms(); updateStats();
+  await saveSessionToDB(activeRoomId);
+}
+
+// ===== FILTER =====
+function applyFilter(){
+  const from=document.getElementById('filterFrom').value;
+  const to=document.getElementById('filterTo').value;
+  const room=document.getElementById('filterRoom').value;
+  loadLogsFromDB(from,to,room);
+}
+function resetFilter(){
+  document.getElementById('filterFrom').value='';
+  document.getElementById('filterTo').value='';
+  document.getElementById('filterRoom').value='';
+  loadLogsFromDB();
+}
+
+// ===== LOG =====
+function renderLog(){
+  const tbody=document.getElementById('logBody');
+  if(!log.length){tbody.innerHTML='<tr><td colspan="10" class="log-empty">Аяқталған сессиялар жоқ</td></tr>';return;}
+  tbody.innerHTML=log.map(e=>`<tr>
+    <td style="font-size:0.7rem;color:var(--muted)">${formatDate(e.endTime)}</td>
+    <td class="td-room">${e.roomName||e.roomId}</td>
+    <td>${formatTime(e.startTime)}</td>
+    <td>${formatTime(e.endTime)}</td>
+    <td>${e.duration}</td>
+    <td>${e.guests}</td>
+    <td style="font-size:0.68rem;color:var(--muted)">${e.tariffLabel||'—'}</td>
+    <td class="td-comment" title="${e.menuSummary||''}">${e.menuSummary||'—'}</td>
+    <td class="td-amount">${(e.totalAmount||0).toLocaleString()}₸</td>
+    <td class="td-comment" title="${e.comment||''}">${e.comment||'—'}</td>
+  </tr>`).join('');
+}
+
+async function clearLog(){
+  if(confirm('Барлық тізімді тазалаймыз ба? Supabase-тен де жойылады!')){
+    try{
+      await sbDelete('logs','id=neq.00000000-0000-0000-0000-000000000000');
+    }catch(e){console.error(e);}
+    log=[];filteredLog=[];renderLog();updateStats();
+  }
+}
+
+// ===== EXPORT CSV =====
+function exportCSV(){
+  if(!log.length){alert('История бос!');return;}
+  const headers=['Күн','Зал','Кірді','Шықты','Уақыт','Адам','Тариф','Меню','Барлығы','Комментарий'];
+  const rows=log.map(e=>[
+    formatDate(e.endTime),e.roomName||e.roomId,
+    formatTime(e.startTime),formatTime(e.endTime),
+    e.duration,e.guests,e.tariffLabel||'',
+    e.menuSummary||'',e.totalAmount||0,e.comment||''
+  ]);
+  const csv=[headers,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`imperator_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();URL.revokeObjectURL(url);
+}
+
+// ===== POPULATE FILTER ROOMS =====
+function populateRoomFilter(){
+  const sel=document.getElementById('filterRoom');
+  ROOMS.forEach(r=>{
+    const opt=document.createElement('option');
+    opt.value=r.id;opt.textContent=r.name;
+    sel.appendChild(opt);
+  });
+}
+
+// ===== CLOSE ON OVERLAY =====
+document.querySelectorAll('.modal-overlay').forEach(overlay=>{
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.classList.remove('active');});
+});
+
+// ===== INIT =====
+async function init(){
+  populateRoomFilter();
+  updateClock();updatePriceHint();
+  setInterval(updateClock,1000);
+  setSyncStatus('loading');
+  await loadSessionsFromDB();
+  await loadLogsFromDB();
+  renderRooms();updateStats();
+  startTimers();
+  startSyncPolling();
+}
+init();
+</script>
+</body>
+</html>
